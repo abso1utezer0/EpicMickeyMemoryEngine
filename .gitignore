@@ -1,2 +1,4 @@
-global-exclude __pycache__
-global-exclude token.txt
+# exclude any instance of token.txt from the commit
+token.txt
+# exclude any python cache files
+__pycache__/
