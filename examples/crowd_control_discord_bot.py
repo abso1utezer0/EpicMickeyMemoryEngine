@@ -3,6 +3,7 @@ import sys
 import time
 import discord
 from discord import app_commands
+
 # add the parent directory to the path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
@@ -11,11 +12,17 @@ import epicmickeymemoryengine.states.game as game
 import epicmickeymemoryengine.lua.wrappers as lua_wrapper
 import epicmickeymemoryengine.lua.communicator as lua
 
+# set the path to the token.txt file here
+token_path = r"C:\Users\thise\source\repos\EpicMickeyMemoryEngine\examples\token.txt"
+
 # check if token.txt exists
-if not os.path.exists("token.txt"):
-    print("Please create a file called token.txt and put your bot token in it.")
-    exit()
-token = open("token.txt", "r").read()
+if not os.path.exists(token_path):
+    print("token.txt not found, please create a token.txt file with the bot token.")
+    sys.exit(1)
+
+# read the token from token.txt
+with open(token_path, "r") as token_file:
+    token = token_file.read().strip()
 
 # set the path to the game files here (used for error checking movies)
 game_path = r"C:\Users\thise\Documents\epic_mickey_clean\DATA\files"
