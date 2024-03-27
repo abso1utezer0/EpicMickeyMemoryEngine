@@ -1,4 +1,4 @@
-from epicmickeymemoryengine.lua.communicator import get_lua
+from epicmickeymemoryengine.lua.communicator import get_lua, read_null_terminated_string
 import dolphin_memory_engine
 import struct
 
@@ -41,3 +41,41 @@ def get_cursor_y():
 def get_cursor_pos():
     """ Get the position of the reticle (does not work in menus)"""
     return (get_cursor_x(), get_cursor_y())
+
+def get_files():
+    current_address = 0x90ac32b0
+    def add_path_from_pointer(pointer_address):
+        if pointer_address == 0:
+            return
+        path = ""
+        try:
+            path = read_null_terminated_string(pointer_address)
+        except:
+            pass
+        if path != "":
+            return path
+    paths = []
+    for i in range(1082):
+        try:
+            num1 = read_u32(current_address)
+            num2 = read_u32(current_address + 4)
+            num3 = read_u32(current_address + 8)
+            data_offset = read_u32(current_address + 12)
+            path1_offset = read_u32(current_address + 16)
+            path2_offset = read_u32(current_address + 20)
+            path3_offset = read_u32(current_address + 24)
+            size1 = read_u32(current_address + 28)
+            size2 = read_u32(current_address + 32)
+            path1 = add_path_from_pointer(read_u32(path1_offset))
+            path2 = add_path_from_pointer(path2_offset)
+            path3 = add_path_from_pointer(path3_offset)
+            paths.append(path1)
+            paths.append(path2)
+            paths.append(path3)
+            current_address += 36
+        except Exception as e:
+            break
+    # remove duplicates
+    paths = list(set(paths))
+    paths = [path for path in paths if path is not None]
+    return paths

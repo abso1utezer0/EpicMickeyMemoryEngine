@@ -63,7 +63,7 @@ async def exec_lua(interaction:discord.Interaction, lua_snippet: str):
     lua_snippet = ''.join([i if ord(i) < 128 else f"\\{ord(i)}" for i in lua_snippet])
     lua.execute_lua(lua_snippet)
     emme.unhook()
-    await interaction.response.send_message(f"@{interaction.user.name} executed a lua script:\n```lua\n{lua}\n```")
+    await interaction.response.send_message(f"{interaction.user.mention} executed a lua script:\n```lua\n{lua_snippet}\n```")
 
 # lua_file - execute a lua script from a file
 @tree.command(
@@ -87,7 +87,7 @@ async def exec_lua_file(interaction:discord.Interaction, file: discord.Attachmen
     emme.unhook()
     # @{author} executed a lua script: \n```lua\n{contents of file}\n```
     lua_contents = open(temp_lua_path, "r").read()
-    await interaction.response.send_message(f"@{interaction.user.name} executed a lua script:\n```lua\n{lua_contents}\n```")
+    await interaction.response.send_message(f"{interaction.user.mention} executed a lua script:\n```lua\n{lua_contents}\n```")
 
 @tree.command(
     name="ask",
@@ -100,11 +100,12 @@ async def ask(interaction:discord.Interaction, question: str, answer1: str, answ
         emme.unhook()
         await interaction.response.send_message("The game is loading, paused, or in a cutscene, please wait.")
         return
-    username = interaction.user.name
+    # display name of the user who asked the question
+    username = interaction.user.display_name
     lua_wrapper.yes_no_dialog_box(question=question, answer1=answer1, answer2=answer2, icon_name="", title=username)
     emme.unhook()
     # show that the question was asked
-    await interaction.response.send_message(f"@{interaction.user.name} asked: \"{question}\"")
+    await interaction.response.send_message(f"{interaction.user.mention} asked: \"{question}\"")
     response = None
     # wait for the response
     while response == None:
@@ -129,11 +130,11 @@ async def ask_exec(interaction:discord.Interaction, question: str, answer1: str,
         emme.unhook()
         await interaction.response.send_message("The game is loading, paused, or in a cutscene, please wait.")
         return
-    username = interaction.user.name
+    username = interaction.user.display_name
     lua_wrapper.yes_no_dialog_box(question=question, answer1=answer1, answer2=answer2, icon_name="", title=username)
     emme.unhook()
     # show that the question was asked
-    await interaction.response.send_message(f"@{interaction.user.name} asked: \"{question}\"")
+    await interaction.response.send_message(f"{interaction.user.mention} asked: \"{question}\"")
     response = None
     # wait for the response
     while response == None:
@@ -180,7 +181,7 @@ async def audio_event(interaction:discord.Interaction, event: str):
         return
     lua.execute_lua(f"AudioPostEventOn(GetPlayer(), \"{event}\")")
     emme.unhook()
-    await interaction.response.send_message(f"@{interaction.user.name} played audio event: `{event}`")
+    await interaction.response.send_message(f"{interaction.user.mention} played audio event: `{event}`")
 
 # play movie - play a movie
 @tree.command(
@@ -204,7 +205,79 @@ async def play_movie(interaction:discord.Interaction, movie: str):
         return
     lua_wrapper.play_movie(movie)
     emme.unhook()
-    await interaction.response.send_message(f"@{interaction.user.name} played movie: `{movie}`")
+    await interaction.response.send_message(f"{interaction.user.mention} played movie: `{movie}`")
+
+# get global files
+@tree.command(
+    name="get_files",
+    description="Get a list of global files",
+    guild=discord.Object(1134200376275513475)
+)
+async def get_files(interaction:discord.Interaction):
+    emme.hook()
+    files = game.get_files()
+    emme.unhook()
+    string = ""
+    # must be 2000 characters or less
+    for file in files:
+        string += f"{file}\n"
+    
+    # remove any non-ascii characters
+    string = ''.join([i if ord(i) < 128 else ' ' for i in string])
+    
+    # upload the file as a text file
+    with open("files.txt", "w") as file:
+        file.write(string)
+    with open("files.txt", "rb") as file:
+        await interaction.response.send_message("Global files:", file=discord.File(file, "files.txt"))
+    
+    # delete the file
+    os.remove("files.txt")
+
+# load level - load a level
+@tree.command(
+    name="load_level",
+    description="Load a level",
+    guild=discord.Object(1134200376275513475)
+)
+async def load_level(interaction:discord.Interaction, level: str):
+    # make sure the game isnt loading or paused
+    emme.hook()
+    if game.is_loading() or game.is_paused():
+        emme.unhook()
+        await interaction.response.send_message("The game is loading or paused, please wait.")
+        return
+    # if level doesnt have an extension, add .level
+    if os.path.splitext(level)[1] == "":
+        level += ".level"
+    if os.path.split(level)[0] == "":
+        level = os.path.join("Levels", level)
+    level = level.replace("\\", "/")
+    blacklisted_levels = [
+        "Levels/AI_Test.level",
+        "Levels/NPC_Test.level",
+        "Levels/NPC_Test_2.level",
+        "Levels/Main_Menu.level",
+    ]
+    for blacklisted_level in blacklisted_levels:
+        if level.lower() == blacklisted_level.lower():
+            await interaction.response.send_message(f"Could not load level `{level}` as it is blacklisted, either for missing assets or making the bot unhook from the game.")
+            return
+    files_in_memory = game.get_files()
+    emme.unhook()
+    # check if the level exists
+    level_found = False
+    for file in files_in_memory:
+        if file.lower().endswith(f"{level.lower()}"):
+            level_found = True
+            break
+    if not level_found:
+        await interaction.response.send_message(f"Level not found: `{level}`")
+        return
+    emme.hook()
+    lua_wrapper.clean_load_level(level)
+    emme.unhook()
+    await interaction.response.send_message(f"{interaction.user.mention} loaded a level: `{level}`")
 
 # check if a movie is playing
 @tree.command(
@@ -236,5 +309,37 @@ async def cursor_pos(interaction:discord.Interaction):
     cursor_pos = game.get_cursor_pos()
     emme.unhook()
     await interaction.response.send_message(f"Cursor position: {cursor_pos}")
+
+# app to execute a message as a lua script
+async def execute_lua_message(interaction:discord.Interaction, message: discord.Message):
+    emme.hook()
+    if game.is_loading() or game.is_paused() or game.is_in_cutscene():
+        emme.unhook()
+        await interaction.response.send_message("The game is loading, paused, or in a cutscene, please wait.")
+        return
+    message.content = ''.join([i if ord(i) < 128 else ' ' for i in message.content])
+    snippet = message.content
+    # if it begins with ```, remove that line
+    lines = snippet.split("\n")
+    if lines[0].startswith("```"):
+        lines.pop(0)
+    # if it ends with ```, remove that line
+    if lines[-1].endswith("```"):
+        lines.pop(-1)
+    snippet = "\n".join(lines)
+    snippet = snippet.replace("`", "")
+    lua.execute_lua(snippet)
+    emme.unhook()
+    # link to the message
+    await interaction.response.send_message(f"{interaction.user.mention} executed a lua script from message: {message.jump_url}")
+
+execute_lua_message_context_menu = app_commands.ContextMenu(
+    name="Execute as Lua",
+    callback=execute_lua_message,
+    guild_ids=[1134200376275513475]
+)
+
+# add the context menu
+tree.add_command(execute_lua_message_context_menu)
 
 client.run(token)

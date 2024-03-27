@@ -160,3 +160,13 @@ def set_percent_game_speed(speed:float) -> None:
     """
 
     execute_lua(f"SetPercentGameSpeed({speed})")
+
+def clean_load_level(level_name:str) -> None:
+    """ Load a level.
+
+    ### Parameters
+    1. `level_name` (`str`)
+        The name of the level to load.
+    """
+
+    execute_lua(f"CleanLoadLevel(\"{level_name}\")")

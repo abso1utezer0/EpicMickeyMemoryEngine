@@ -68,14 +68,13 @@ def write_config(address, key, value:str):
     dolphin_memory_engine.write_bytes(address, data)
 
 def execute_lua(lua:str):
+    lua = lua.replace("\n", "~")
     # write the command to the config file
     write_config(0x80f36798, "LuaToExecute", lua)
 
 def execute_lua_file(file_path:str):
     with open(file_path, "r") as lua_file:
         lua = lua_file.read()
-    lua = lua.replace("\n", "~")
-    print(lua)
     execute_lua(lua)
 
 def get_lua(variable_name):
