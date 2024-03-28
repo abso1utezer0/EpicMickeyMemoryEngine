@@ -279,6 +279,34 @@ async def load_level(interaction:discord.Interaction, level: str):
     emme.unhook()
     await interaction.response.send_message(f"{interaction.user.mention} loaded a level: `{level}`")
 
+# list levels command
+@tree.command(
+    name="list_levels",
+    description="List all levels",
+    guild=discord.Object(1134200376275513475)
+)
+async def list_levels(interaction:discord.Interaction):
+    emme.hook()
+    files_in_memory = game.get_files()
+    emme.unhook()
+    levels = []
+    for file in files_in_memory:
+        if file.lower().endswith(".level"):
+            # get the file name
+            level = os.path.basename(file)
+            # get the level name without the extension
+            level = os.path.splitext(level)[0]
+            levels.append(level)
+    string = ""
+    for level in levels:
+        string += f"{level}\n"
+    # send file
+    with open("levels.txt", "w") as file:
+        file.write(string)
+    with open("levels.txt", "rb") as file:
+        await interaction.response.send_message("Levels:", file=discord.File(file, "levels.txt"))
+    os.remove("levels.txt")
+
 # check if a movie is playing
 @tree.command(
     name="movie_status",
