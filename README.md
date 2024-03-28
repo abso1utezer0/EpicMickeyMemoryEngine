@@ -3,7 +3,7 @@
 
 ## Installation
 
-Replace the globalscripts.pak file in the packfiles folder of your Epic Mickey installation with the one provided in the root of this repository. Next, add the following to the beginning of ConfigFiles.ini (or ConfigOverride.ini):
+Replace the _Dynamic.pak and globalscripts.pak files in the packfiles folder of your Epic Mickey installation with the ones provided in the root of this repository. Next, add the following to the beginning of ConfigFiles.ini (or ConfigOverride.ini):
 
 ```ini
 LuaToExecute=.
